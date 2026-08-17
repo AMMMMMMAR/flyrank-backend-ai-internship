@@ -4,7 +4,11 @@ from typing import Optional
 from fastapi import Response
 
 
-app = FastAPI()
+app = FastAPI(
+    title="Task API",
+    description="A simple CRUD API to manage your to-do tasks",
+    version="1.0"
+)
 
 tasks = [
     {"id": 1, "title": "This is task 1", "done": False},
@@ -19,6 +23,7 @@ class TaskCreate(BaseModel):
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
     done: Optional[bool] = None
+
 
 @app.get("/")
 async def get_api_info():
@@ -36,11 +41,11 @@ async def health_check():
 
 
 
-@app.get("/tasks")
+@app.get("/tasks", summary="Get all tasks")
 async def get_tasks():
     return tasks
 
-@app.get("/tasks/{task_id}")
+@app.get("/tasks/{task_id}", summary="Get a single task by ID")
 async def get_task(task_id: int):
     for task in tasks:
         if task["id"] == task_id:
@@ -52,7 +57,7 @@ async def get_task(task_id: int):
 
 
 # Stage 3: Create a new task
-@app.post("/tasks", status_code=201)
+@app.post("/tasks", status_code=201, summary="Create a new task")
 async def create_task(task: TaskCreate):
     # 1. Validate: check for empty or whitespace-only string
     if not task.title.strip():
@@ -69,7 +74,7 @@ async def create_task(task: TaskCreate):
     return new_task
 
 
-@app.put("/tasks/{task_id}")
+@app.put("/tasks/{task_id}", summary="Update an existing task")
 async def update_task(task_id: int, task: TaskUpdate):
     for i, t in enumerate(tasks):
         if t["id"] == task_id:
@@ -81,7 +86,7 @@ async def update_task(task_id: int, task: TaskUpdate):
     raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
 
 
-@app.delete("/tasks/{task_id}", status_code=204)
+@app.delete("/tasks/{task_id}", status_code=204, summary="Delete a task")
 def delete_task(task_id: int):
     for i, t in enumerate(tasks):
         if t["id"] == task_id:
