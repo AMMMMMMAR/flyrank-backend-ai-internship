@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
 app = FastAPI()
 
@@ -7,6 +8,10 @@ tasks = [
     {"id": 2, "title": "This is task 2", "done": True},
     {"id": 3, "title": "This is task 3", "done": False}
 ]
+
+# Pydantic model to parse and validate the request body
+class TaskCreate(BaseModel):
+    title: str
 
 @app.get("/")
 async def get_api_info():
@@ -39,3 +44,19 @@ async def get_task(task_id: int):
 
 
 
+# Stage 3: Create a new task
+@app.post("/tasks", status_code=201)
+async def create_task(task: TaskCreate):
+    # 1. Validate: check for empty or whitespace-only string
+    if not task.title.strip():
+        raise HTTPException(status_code=400, detail="Title cannot be empty")
+
+    # 2. Generate next ID: take the last item's id + 1, or start at 1 if list is empty
+    next_id = tasks[-1]["id"] + 1 if tasks else 1
+
+    # 3. Create the new task object
+    new_task = {"id": next_id, "title": task.title, "done": False}
+
+    # 4. Save and return the new task
+    tasks.append(new_task)
+    return new_task
