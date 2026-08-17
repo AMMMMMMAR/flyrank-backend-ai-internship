@@ -25,3 +25,17 @@ uvicorn main:app --reload
 
 ## Interactive Docs
 Visit `http://localhost:8000/docs` after running the server.
+
+## Sample curl output
+curl -i http://localhost:8000/tasks
+
+HTTP/1.1 200 OK
+date: Mon, 17 Aug 2026 21:16:45 GMT
+server: uvicorn
+content-length: 141
+content-type: application/json
+
+[{"id":1,"title":"This is task 1","done":false},{"id":2,"title":"This is task 2","done":true},{"id":3,"title":"This is task 3","done":false}]
+
+## Swagger UI Screenshot
+![Alt Text](/swagger.png)
