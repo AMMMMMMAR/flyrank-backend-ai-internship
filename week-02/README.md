@@ -39,3 +39,9 @@ content-type: application/json
 
 ## Swagger UI Screenshot
 ![Alt Text](/swagger.png)
+
+## The Mortality Experiment
+
+After adding new tasks and restarting the server, all added tasks disappeared.
+This happens because data is stored in memory (RAM) which is wiped on every 
+restart — this is exactly the problem that databases solve in Week 3.
