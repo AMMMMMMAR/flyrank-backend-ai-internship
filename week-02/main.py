@@ -54,6 +54,14 @@ async def get_tasks(done: Optional[bool] = None, search: Optional[str] = None):
     return result
                    
 
+@app.get("/tasks/stats", summary="Get task statistics")
+async def get_task_stats():
+    total = len(tasks)
+    done = len([t for t in tasks if t["done"]])
+    return {"total": total, "done": done, "open": total - done}
+
+
+
 @app.get("/tasks/{task_id}", summary="Get a single task by ID")
 async def get_task(task_id: int):
     for task in tasks:
@@ -99,5 +107,4 @@ def delete_task(task_id: int):
             del tasks[i]
             return Response(status_code=204)
     raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
-
 
