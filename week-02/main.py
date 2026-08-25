@@ -41,9 +41,11 @@ async def health_check():
 
 
 
-@app.get("/tasks", summary="Get all tasks")
-async def get_tasks():
-    return tasks
+@app.get("/tasks", summary="Get tasks with filtering")              
+async def get_tasks(done: Optional[bool] = None):  
+    if done is None:            
+        return tasks
+    return [task for task in tasks if task["done"] == done]  
 
 @app.get("/tasks/{task_id}", summary="Get a single task by ID")
 async def get_task(task_id: int):
@@ -93,3 +95,5 @@ def delete_task(task_id: int):
             del tasks[i]
             return Response(status_code=204)
     raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+
+
