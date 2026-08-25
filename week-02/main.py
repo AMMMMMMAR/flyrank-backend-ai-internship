@@ -41,11 +41,18 @@ async def health_check():
 
 
 
-@app.get("/tasks", summary="Get tasks with filtering")              
-async def get_tasks(done: Optional[bool] = None):  
-    if done is None:            
-        return tasks
-    return [task for task in tasks if task["done"] == done]  
+@app.get("/tasks", summary="Get tasks with filtering and search")              
+async def get_tasks(done: Optional[bool] = None, search: Optional[str] = None):  
+    result = tasks                    # start with all tasks
+
+    if done is not None:              # if ?done=true/false provided
+        result = [t for t in result if t["done"] == done]
+
+    if search is not None:            # if ?search=word provided
+        result = [t for t in result if search.lower() in t["title"].lower()]
+
+    return result
+                   
 
 @app.get("/tasks/{task_id}", summary="Get a single task by ID")
 async def get_task(task_id: int):
@@ -53,9 +60,6 @@ async def get_task(task_id: int):
         if task["id"] == task_id:
             return task
     raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
-
-
-
 
 
 # Stage 3: Create a new task
