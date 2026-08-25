@@ -10,11 +10,13 @@ app = FastAPI(
     version="1.0"
 )
 
-tasks = [
+DEFAULT_TASKS = [
     {"id": 1, "title": "This is task 1", "done": False},
     {"id": 2, "title": "This is task 2", "done": True},
     {"id": 3, "title": "This is task 3", "done": False}
 ]
+
+tasks = DEFAULT_TASKS.copy() # creates a NEW separate list with same items
 
 # Pydantic model to parse and validate the request body
 class TaskCreate(BaseModel):
@@ -69,6 +71,11 @@ async def get_task(task_id: int):
             return task
     raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
 
+@app.post("/reset", summary="Reset tasks to default")
+async def reset_tasks():
+    tasks.clear()
+    tasks.extend(DEFAULT_TASKS)  # refill from the safe original
+    return {"message": "Tasks reset successfully"}
 
 # Stage 3: Create a new task
 @app.post("/tasks", status_code=201, summary="Create a new task")
