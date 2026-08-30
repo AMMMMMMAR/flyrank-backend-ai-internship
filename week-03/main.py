@@ -1,4 +1,10 @@
 import sqlite3
+from fastapi import FastAPI, HTTPException
+
+app = FastAPI()
+
+def row_to_dict(row):
+    return {"id": row[0], "title": row[1], "done": bool(row[2])}
 
 def init_db():
     # 1. Connect to the database (creates 'tasks.db' if it doesn't exist)
@@ -36,3 +42,33 @@ def init_db():
 
 
 init_db()
+
+
+@app.get("/tasks", summary="Get all tasks")              
+async def get_tasks():  
+    conn = sqlite3.connect("tasks.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, title, done FROM tasks")
+    rows = cursor.fetchall()
+    conn.close()
+
+    # Convert rows to a list of dictionaries
+    result = [row_to_dict(row) for row in rows]  # in get_tasks
+    return result   
+                   
+
+
+
+
+@app.get("/tasks/{task_id}", summary="Get a single task by ID")
+async def get_task(task_id: int):
+    conn = sqlite3.connect("tasks.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, title, done FROM tasks WHERE id = ?", (task_id,))
+    row = cursor.fetchone()
+    conn.close()
+
+    if row:
+        return row_to_dict(row) 
+    else:
+        raise HTTPException(status_code=404, detail="Task not found")
