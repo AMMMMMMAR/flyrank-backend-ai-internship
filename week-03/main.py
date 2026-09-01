@@ -1,6 +1,7 @@
 import sqlite3
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from pydantic import BaseModel
+from typing import Optional
 
 app = FastAPI()
 
@@ -9,6 +10,10 @@ def row_to_dict(row):
 
 class TaskCreate(BaseModel):
     title: str
+
+class TaskUpdate(BaseModel):
+    title: Optional[str] = None
+    done: Optional[bool] = None
 
 def init_db():
     # 1. Connect to the database (creates 'tasks.db' if it doesn't exist)
@@ -89,5 +94,43 @@ async def create_task(task: TaskCreate):
     task_id = cursor.lastrowid
     conn.close()
     
-
     return {"id": task_id, "title": task.title, "done": False}
+
+
+@app.put("/tasks/{task_id}", summary="Update a task by ID")
+async def update_task(task_id: int, task: TaskUpdate):
+    conn = sqlite3.connect("tasks.db")
+    cursor = conn.cursor()
+    
+    # 1. Check task exists first
+    cursor.execute("SELECT id, title, done FROM tasks WHERE id = ?", (task_id,))
+    existing = cursor.fetchone()
+    if not existing:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    # 2. Update only provided fields
+    new_title = task.title if task.title is not None else existing[1]
+    new_done = task.done if task.done is not None else bool(existing[2])
+    
+    # 3. Run the update
+    cursor.execute("UPDATE tasks SET title = ?, done = ? WHERE id = ?", 
+                   (new_title, new_done, task_id))
+    conn.commit()
+    conn.close()
+    
+    return {"id": task_id, "title": new_title, "done": new_done}
+
+@app.delete("/tasks/{task_id}", status_code=204, summary="Delete a task by ID")
+async def delete_task(task_id: int):
+    conn = sqlite3.connect("tasks.db")
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+    conn.commit()
+    deleted_rows = cursor.rowcount
+    conn.close()
+
+    if deleted_rows == 0:                    # ← check BEFORE return
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    return Response(status_code=204)         # ← return AFTER check
