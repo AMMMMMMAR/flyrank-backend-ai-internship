@@ -1,0 +1,17 @@
+CREATE TABLE IF NOT EXISTS tasks (
+    id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    done BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+INSERT INTO tasks (title, done)
+SELECT 'This is task 1', FALSE
+WHERE NOT EXISTS (SELECT 1 FROM tasks);
+
+INSERT INTO tasks (title, done)
+SELECT 'This is task 2', TRUE
+WHERE NOT EXISTS (SELECT 1 FROM tasks LIMIT 1 OFFSET 1);
+
+INSERT INTO tasks (title, done)
+SELECT 'This is task 3', FALSE
+WHERE NOT EXISTS (SELECT 1 FROM tasks LIMIT 1 OFFSET 2);
