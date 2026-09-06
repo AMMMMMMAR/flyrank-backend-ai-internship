@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -56,3 +56,13 @@ async def login(auth_request: AuthRequest):
         raise HTTPException(status_code=401, detail="Invalid login credentials")  # ← raise not return
 
 
+@app.get("/public/info")
+async def public_info():
+    return {"message": "Welcome stranger! This info is public."}
+
+@app.get("/protected/profile")
+async def protected_profile(authorization: str = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Access token required")
+    
+    return {"message": "Token received — not verified yet"}  
