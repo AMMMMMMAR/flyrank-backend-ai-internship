@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException, Header, Response, Depends
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from pydantic import BaseModel
+from fastapi.security import HTTPBearer
 
 class AuthRequest(BaseModel):
     email: str
@@ -20,6 +21,8 @@ app = FastAPI(
     description="Authentication API using Supabase + FastAPI",
     version="1.0"
 )
+
+security = HTTPBearer()
 
 
 def get_current_user(authorization: str = Header(None)):
@@ -65,7 +68,7 @@ async def login(auth_request: AuthRequest):
     "refresh_token": response.session.refresh_token
     }
     except Exception as e:
-        raise HTTPException(status_code=401, detail="Invalid login credentials")  # ← raise not return
+        raise HTTPException(status_code=401, detail="Invalid login credentials")  
 
 
 @app.get("/public/info")
@@ -74,7 +77,7 @@ async def public_info():
 
 
 @app.get("/protected/profile")
-async def protected_profile(current_user = Depends(get_current_user)):
+async def protected_profile(current_user = Depends(get_current_user), credentials = Depends(security)):
     return {
         "id": current_user.id,
         "email": current_user.email,
@@ -82,7 +85,7 @@ async def protected_profile(current_user = Depends(get_current_user)):
     }
 
 @app.get("/protected/dashboard")
-async def protected_dashboard(current_user = Depends(get_current_user)):
+async def protected_dashboard(current_user = Depends(get_current_user), credentials = Depends(security)):
     return {"message": f"Welcome to your dashboard, {current_user.email}"}
 
 
@@ -93,3 +96,4 @@ async def logout(current_user = Depends(get_current_user)):
         return Response(status_code=204)
     except Exception:
         raise HTTPException(status_code=400, detail="Failed to log out")
+
