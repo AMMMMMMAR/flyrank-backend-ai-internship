@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Header, Response, Depends
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -20,6 +20,18 @@ app = FastAPI(
     description="Authentication API using Supabase + FastAPI",
     version="1.0"
 )
+
+
+def get_current_user(authorization: str = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Access token required")
+    token = authorization.split(" ")[1]
+    try:
+        user = supabase.auth.get_user(token)
+        return user.user
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
 
 @app.get("/")
 async def root():
@@ -60,19 +72,24 @@ async def login(auth_request: AuthRequest):
 async def public_info():
     return {"message": "Welcome stranger! This info is public."}
 
+
 @app.get("/protected/profile")
-async def protected_profile(authorization: str = Header(None)):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Access token required")
-    
-    token = authorization.split(" ")[1]
-    
+async def protected_profile(current_user = Depends(get_current_user)):
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "created_at": current_user.created_at
+    }
+
+@app.get("/protected/dashboard")
+async def protected_dashboard(current_user = Depends(get_current_user)):
+    return {"message": f"Welcome to your dashboard, {current_user.email}"}
+
+
+@app.post("/auth/logout", status_code=204)
+async def logout(current_user = Depends(get_current_user)):
     try:
-        user = supabase.auth.get_user(token)
-        return {
-            "id": user.user.id,
-            "email": user.user.email,
-            "created_at": user.user.created_at
-        } 
+        supabase.auth.sign_out()
+        return Response(status_code=204)
     except Exception:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise HTTPException(status_code=400, detail="Failed to log out")
