@@ -1,35 +1,47 @@
 import requests
 import os
+import json
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from datetime import datetime, timezone
 import time
+from pydantic import BaseModel, ValidationError
+from typing import Optional
+
 
 USER_AGENT = "FlyRankInternshipA9/1.0 (https://github.com/AMMMMMMAR/flyrank-backend-ai-internship)"
 TIMEOUT = 10
 
 
+class BookRecord(BaseModel):
+    title: str
+    product_url: str
+    price_text: str
+    price_gbp: float
+    availability_text: str
+    rating_text: str
+    description: Optional[str] = None
+    source_page: str
+    fetched_at: str
+
+
 def fetch_page(url, cache_path):
-    # 1. Check cache first
     if os.path.exists(cache_path):
         print(f"CACHE HIT: {cache_path}")
         with open(cache_path, "r", encoding="utf-8") as f:
             return f.read()
 
-    # 2. Not in cache — fetch from internet
     try:
         response = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=TIMEOUT)
-        response.encoding = "utf-8" 
+        response.encoding = "utf-8"
     except requests.RequestException as e:
         print(f"Request failed: {e}")
         return None
 
-    # 3. Check status code
     if response.status_code != 200:
         print(f"FAILED: {url} returned {response.status_code}")
         return None
 
-    # 4. Save to cache
     with open(cache_path, "w", encoding="utf-8") as f:
         f.write(response.text)
 
@@ -64,23 +76,18 @@ def get_next_page(html, page_url):
 def extract_book(html, product_url, source_page):
     soup = BeautifulSoup(html, "html.parser")
 
-    # Title
     title_tag = soup.find("h1")
     title = title_tag.text.strip() if title_tag else None
 
-    # Price
     price_tag = soup.find("p", class_="price_color")
     price_text = price_tag.text.strip() if price_tag else None
 
-    # Availability
     availability_tag = soup.find("p", class_="instock availability")
     availability_text = availability_tag.text.strip() if availability_tag else None
 
-    # Rating — the word is the second class e.g. "star-rating Three"
     rating_tag = soup.find("p", class_="star-rating")
     rating_text = rating_tag["class"][1] if rating_tag else None
 
-    # Description — some books don't have one
     description = None
     desc_header = soup.find("div", id="product_description")
     if desc_header:
@@ -100,12 +107,18 @@ def extract_book(html, product_url, source_page):
     }
 
 
+def parse_price(price_text: str) -> float:
+    # "£51.77" → 51.77
+    cleaned = price_text.replace("£", "").replace(",", "").strip()
+    return float(cleaned)
+
+
 if __name__ == "__main__":
     # --- Stage 2: discover all 60 book links ---
     base_url = "https://books.toscrape.com/catalogue/page-1.html"
     current_url = base_url
     all_book_links = []
-    source_pages = {}  # maps book_url → catalogue page it came from
+    source_pages = {}
     page_num = 1
 
     while current_url and page_num <= 3:
@@ -114,7 +127,7 @@ if __name__ == "__main__":
         if html:
             links = get_book_links(html, current_url)
             for link in links:
-                source_pages[link] = current_url  # remember which page each book came from
+                source_pages[link] = current_url
             all_book_links.extend(links)
             current_url = get_next_page(html, current_url)
             page_num += 1
@@ -140,12 +153,45 @@ if __name__ == "__main__":
             book = extract_book(html, book_url, source)
             books.append(book)
 
-        # only delay for real network requests
         if not already_cached:
             time.sleep(0.5)
 
     print(f"detail_pages={len(books)}")
-    if books:
-        import json
-        print("Sample record:")
-        print(json.dumps(books[0], indent=2))
+
+    # --- Stage 4: clean, validate and save ---
+    good_books = []
+    errors = []
+
+    for book in books:
+        # add price_gbp
+        try:
+            book["price_gbp"] = parse_price(book["price_text"])
+        except Exception:
+            book["price_gbp"] = None
+
+        # validate with Pydantic
+        try:
+            validated = BookRecord(**book)
+            good_books.append(validated.model_dump())
+        except ValidationError as e:
+            errors.append({
+                "product_url": book.get("product_url"),
+                "reason": str(e)
+            })
+
+    # save good records
+    os.makedirs("output", exist_ok=True)
+    with open("output/books.json", "w", encoding="utf-8") as f:
+        json.dump(good_books, f, indent=2, ensure_ascii=False)
+
+    # save errors
+    with open("output/errors.json", "w", encoding="utf-8") as f:
+        json.dump(errors, f, indent=2, ensure_ascii=False)
+
+    print(f"valid={len(good_books)} invalid={len(errors)}")
+    print(f"Saved to output/books.json and output/errors.json")
+
+    # print sample
+    if good_books:
+        print("Sample validated record:")
+        print(json.dumps(good_books[0], indent=2, ensure_ascii=False))
