@@ -120,6 +120,10 @@ if __name__ == "__main__":
     all_book_links = []
     source_pages = {}
     page_num = 1
+    start_time = datetime.now(timezone.utc)
+    cache_hits = 0
+    fetches = 0
+    failed_pages = []
 
     while current_url and page_num <= 3:
         cache_path = f"cache/catalogue-page-{page_num}.html"
@@ -147,16 +151,25 @@ if __name__ == "__main__":
         cache_path = f"cache/book-{i+1}.html"
         already_cached = os.path.exists(cache_path)
 
-        html = fetch_page(book_url, cache_path)
-        if html:
-            source = source_pages.get(book_url, "unknown")
-            book = extract_book(html, book_url, source)
-            books.append(book)
+        try:
+            html = fetch_page(book_url, cache_path)
+            if html:
+                source = source_pages.get(book_url, "unknown")
+                book = extract_book(html, book_url, source)
+                books.append(book)
+                if already_cached:
+                    cache_hits += 1
+                else:
+                    fetches += 1
+            else:
+                print(f"SKIPPING: {book_url}")
+                failed_pages.append(book_url)
+        except Exception as e:
+            print(f"ERROR on {book_url}: {e}")
+            failed_pages.append(book_url)
 
         if not already_cached:
             time.sleep(0.5)
-
-    print(f"detail_pages={len(books)}")
 
     # --- Stage 4: clean, validate and save ---
     good_books = []
@@ -195,3 +208,25 @@ if __name__ == "__main__":
     if good_books:
         print("Sample validated record:")
         print(json.dumps(good_books[0], indent=2, ensure_ascii=False))
+    end_time = datetime.now(timezone.utc)
+    duration = (end_time - start_time).total_seconds()
+
+    run_report = {
+        "started_at": start_time.isoformat(),
+        "finished_at": end_time.isoformat(),
+        "duration_seconds": round(duration, 2),
+        "catalogue_pages": page_num - 1,
+        "cache_hits": cache_hits,
+        "fetches": fetches,
+        "valid_records": len(good_books),
+        "invalid_records": len(errors),
+        "failed_pages": len(failed_pages),
+        "failed_urls": failed_pages
+    }
+
+    with open("output/run-report.json", "w", encoding="utf-8") as f:
+        json.dump(run_report, f, indent=2, ensure_ascii=False)
+
+    print(f"failed_pages={len(failed_pages)}")
+    print("Run report saved to output/run-report.json")
+    print(json.dumps(run_report, indent=2))
