@@ -82,7 +82,18 @@ only add memory and time cost with no benefit for this target.
 ## Run Report
 
 ```json
-[paste your run-report.json here after running the scraper]
+{
+  "started_at": "2026-09-22T02:43:07.164062+00:00",
+  "finished_at": "2026-09-22T02:43:07.925488+00:00",
+  "duration_seconds": 0.76,
+  "catalogue_pages": 3,
+  "cache_hits": 60,
+  "fetches": 0,
+  "valid_records": 60,
+  "invalid_records": 0,
+  "failed_pages": 0,
+  "failed_urls": []
+}
 ```
 
 ## Lane
