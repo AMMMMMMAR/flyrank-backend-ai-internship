@@ -1,0 +1,34 @@
+[
+  {
+    "input": "Sr. Software Engineer",
+    "expected": "Senior Software Engineer"
+  },
+  {
+    "input": "Full Stack JS Developer",
+    "expected": "Full Stack Developer"
+  },
+  {
+    "input": "Frontend React Dev",
+    "expected": "Frontend Developer"
+  },
+  {
+    "input": "Python Backend Engineer",
+    "expected": "Backend Developer"
+  },
+  {
+    "input": "ML Engineer",
+    "expected": "Data Scientist"
+  },
+  {
+    "input": "QA Automation Tester",
+    "expected": "QA Engineer"
+  },
+  {
+    "input": "Ninja Rockstar Guru",
+    "expected": "Other"
+  },
+  {
+    "input": "Cloud Infrastructure Engineer",
+    "expected": "DevOps Engineer"
+  }
+]
