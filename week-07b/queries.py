@@ -21,9 +21,14 @@ def get_report_data():
         "SELECT title, price FROM books ORDER BY price DESC LIMIT 5"
     ).fetchall()
 
-    # 4. Number of books per star rating
+        # 4. Number of books per star rating
     books_per_rating = cursor.execute(
         "SELECT rating, COUNT(*) as count FROM books GROUP BY rating ORDER BY count DESC"
+    ).fetchall()
+
+    # 5. All books (for the full table)  ← remove the extra indent here
+    all_books = cursor.execute(
+        "SELECT title, price, rating FROM books ORDER BY price DESC"
     ).fetchall()
 
     conn.close()
@@ -36,7 +41,10 @@ def get_report_data():
         ],
         "books_per_rating": [
             {"rating": row[0], "count": row[1]} for row in books_per_rating
-        ]
+        ],
+        "all_books": [
+            {"title": row[0], "price": row[1], "rating": row[2]} 
+            for row in all_books]
     }
 
 if __name__ == "__main__":
