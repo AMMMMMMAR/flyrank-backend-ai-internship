@@ -1,25 +1,26 @@
-import asyncio
-from playwright.async_api import async_playwright
+from playwright.sync_api import sync_playwright
 from datetime import date
 
-async def render_pdf(data: dict, output_path: str):
+def render_pdf_sync(data: dict, output_path: str):
     html = build_html(data)
-    
-    async with async_playwright() as p:
-        browser = await p.chromium.launch()
-        page = await browser.new_page()
-        await page.set_content(html, wait_until="networkidle")
-        await page.pdf(
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        page.set_content(html, wait_until="networkidle")
+        page.pdf(
             path=output_path,
             format="A4",
             print_background=True
         )
-        await browser.close()
+        browser.close()
+
+async def render_pdf(data: dict, output_path: str):
+    import asyncio
+    await asyncio.to_thread(render_pdf_sync, data, output_path)
 
 def build_html(data: dict) -> str:
     today = date.today().strftime("%B %d, %Y")
     
-    # Top 5 expensive books table rows
     top5_rows = ""
     for i, book in enumerate(data["top_5_expensive"], 1):
         top5_rows += f"""
@@ -30,7 +31,6 @@ def build_html(data: dict) -> str:
         </tr>
         """
 
-    # Rating breakdown rows
     rating_rows = ""
     for item in data["books_per_rating"]:
         rating_rows += f"""
@@ -39,6 +39,11 @@ def build_html(data: dict) -> str:
             <td>{item['count']}</td>
         </tr>
         """
+
+    all_books_rows = "".join(
+        f'<tr><td>{i}</td><td>{b["title"]}</td><td>£{b["price"]:.2f}</td><td>{b["rating"]}</td></tr>'
+        for i, b in enumerate(data['all_books'], 1)
+    )
 
     return f"""
     <!DOCTYPE html>
@@ -112,8 +117,6 @@ def build_html(data: dict) -> str:
                 border-bottom: 1px solid #e2e8f0;
                 font-size: 12px;
             }}
-            .all-books-section {{ margin-top: 16px; }}
-
             @media print {{
                 thead {{ display: table-header-group; }}
                 tbody tr {{ break-inside: avoid; }}
@@ -140,51 +143,32 @@ def build_html(data: dict) -> str:
         <h2>Top 5 Most Expensive Books</h2>
         <table>
             <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Title</th>
-                    <th>Price</th>
-                </tr>
+                <tr><th>#</th><th>Title</th><th>Price</th></tr>
             </thead>
-            <tbody>
-                {top5_rows}
-            </tbody>
+            <tbody>{top5_rows}</tbody>
         </table>
 
         <h2>Books by Star Rating</h2>
         <table>
             <thead>
-                <tr>
-                    <th>Rating</th>
-                    <th>Number of Books</th>
-                </tr>
+                <tr><th>Rating</th><th>Number of Books</th></tr>
             </thead>
-            <tbody>
-                {rating_rows}
-            </tbody>
+            <tbody>{rating_rows}</tbody>
         </table>
 
-        <div class="all-books-section">
-            <h2>All Books</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Title</th>
-                        <th>Price</th>
-                        <th>Rating</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {"".join(f'<tr><td>{i}</td><td>{b["title"]}</td><td>£{b["price"]:.2f}</td><td>{b["rating"]}</td></tr>' for i, b in enumerate(data['all_books'], 1))}
-                </tbody>
-            </table>
-        </div>
+        <h2>All Books</h2>
+        <table>
+            <thead>
+                <tr><th>#</th><th>Title</th><th>Price</th><th>Rating</th></tr>
+            </thead>
+            <tbody>{all_books_rows}</tbody>
+        </table>
     </body>
     </html>
     """
 
 if __name__ == "__main__":
+    import asyncio
     from queries import get_report_data
     data = get_report_data()
     asyncio.run(render_pdf(data, "reports/test.pdf"))
