@@ -1,8 +1,7 @@
 import sqlite3
-import asyncio
 import os
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from datetime import datetime
 from queries import get_report_data
 from renderer import render_pdf
@@ -32,11 +31,29 @@ def health():
     return {"status": "ok"}
 
 @app.post("/reports", status_code=201)
-async def generate_report():
+async def generate_report(force: bool = False):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    # Insert report record
+    # Check if report already exists today
+    if not force:
+        today = datetime.utcnow().strftime("%Y-%m-%d")
+        existing = cursor.execute(
+            "SELECT id FROM reports WHERE created_at LIKE ?",
+            (f"{today}%",)
+        ).fetchone()
+
+        if existing:
+            conn.close()
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "id": existing[0],
+                    "file": f"/reports/{existing[0]}/file"
+                }
+            )
+
+    # Insert report record to get an id
     created_at = datetime.utcnow().isoformat()
     cursor.execute(
         "INSERT INTO reports (path, created_at) VALUES (?, ?)",
