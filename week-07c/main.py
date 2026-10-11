@@ -25,11 +25,19 @@ async def say_hello(ctx: inngest.Context) -> str:
     return "Hello from the background!"
 
 
-# ---------- Stage 2 + 3 function ----------
+# ---------- Stage 4: runs once after the LAST attempt fails ----------
+async def mark_failed(ctx: inngest.Context) -> None:
+    report_id = ctx.event.data["event"]["data"]["id"]
+    if report_id in reports:
+        reports[report_id]["status"] = "failed"
+
+
+# ---------- Stage 2 + 3 + 4 function ----------
 @inngest_client.create_function(
     fn_id="make-report",
     trigger=inngest.TriggerEvent(event="report/requested"),
-    retries=2,  # Stage 3: 1 first try + 2 retries = 3 attempts
+    retries=2,
+    on_failure=mark_failed,
 )
 async def make_report(ctx: inngest.Context) -> str:
     report_id = ctx.event.data["id"]
@@ -38,7 +46,6 @@ async def make_report(ctx: inngest.Context) -> str:
     await ctx.step.sleep("do-the-slow-work", datetime.timedelta(seconds=8))
 
     async def build_report() -> str:
-        # Stage 3: test switch to watch retries happen
         if topic == "fail":
             raise Exception("The report oven is broken!")
 
@@ -50,9 +57,23 @@ async def make_report(ctx: inngest.Context) -> str:
     return await ctx.step.run("build-report", build_report)
 
 
+# ---------- Stage 4: cron heartbeat ----------
+@inngest_client.create_function(
+    fn_id="heartbeat",
+    trigger=inngest.TriggerCron(cron="* * * * *"),  # every minute (testing only)
+)
+async def heartbeat(ctx: inngest.Context) -> str:
+    pending = sum(1 for r in reports.values() if r["status"] == "pending")
+    done = sum(1 for r in reports.values() if r["status"] == "done")
+    failed = sum(1 for r in reports.values() if r["status"] == "failed")
+    summary = f"Heartbeat: {pending} pending, {done} done, {failed} failed"
+    print(summary)
+    return summary
+
+
 app = FastAPI()
 
-inngest.fast_api.serve(app, inngest_client, [say_hello, make_report])
+inngest.fast_api.serve(app, inngest_client, [say_hello, make_report, heartbeat])
 
 
 @app.get("/health")
@@ -62,7 +83,6 @@ def health():
 
 @app.post("/reports", status_code=202)
 async def create_report(body: dict):
-    # Stage 3: reject bad input at the door (no report, no event)
     topic = body.get("topic")
     if not topic or not isinstance(topic, str):
         raise HTTPException(status_code=400, detail="topic is required")
