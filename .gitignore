@@ -1,8 +1,10 @@
+@'
 venv/
+.venv/
 __pycache__/
 *.pyc
-
-Set-Content week-03/.gitignore "venv/`ntasks.db"
-cat week-03/.gitignore
-venv/
-tasks.db
+.env
+node_modules/
+.DS_Store
+.pdf
+'@ | Set-Content .gitignore -Encoding ascii

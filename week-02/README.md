@@ -38,7 +38,7 @@ content-type: application/json
 [{"id":1,"title":"This is task 1","done":false},{"id":2,"title":"This is task 2","done":true},{"id":3,"title":"This is task 3","done":false}]
 
 ## Swagger UI Screenshot
-![Alt Text](/swagger.png)
+![Alt Text](/week-02/swagger.png)
 
 ## The Mortality Experiment
 

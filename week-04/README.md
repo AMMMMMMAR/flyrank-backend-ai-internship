@@ -61,7 +61,7 @@ curl -i http://localhost:8000/protected/profile -H "authorization: Bearer YOUR_T
 
 ## Swagger UI
 
-![Swagger UI](swagger.png)
+![Swagger UI](/week-04/swagger.png)
 
 ## Security notes
 
