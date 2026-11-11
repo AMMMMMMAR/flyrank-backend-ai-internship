@@ -70,7 +70,7 @@ Expected response:
 }
 ```
 
-Missing field (returns 400):
+Missing field (returns 422):
 ```bash
 curl -X POST http://localhost:8000/normalize \
   -H "Content-Type: application/json" \

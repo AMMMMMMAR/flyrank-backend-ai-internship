@@ -1,3 +1,4 @@
+import copy
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional
@@ -16,7 +17,7 @@ DEFAULT_TASKS = [
     {"id": 3, "title": "This is task 3", "done": False}
 ]
 
-tasks = DEFAULT_TASKS.copy() # creates a NEW separate list with same items
+tasks = copy.deepcopy(DEFAULT_TASKS)  # a full separate copy (the dictionaries too)
 
 # Pydantic model to parse and validate the request body
 class TaskCreate(BaseModel):
@@ -74,7 +75,7 @@ async def get_task(task_id: int):
 @app.post("/reset", summary="Reset tasks to default")
 async def reset_tasks():
     tasks.clear()
-    tasks.extend(DEFAULT_TASKS)  # refill from the safe original
+    tasks.extend(copy.deepcopy(DEFAULT_TASKS))  # refill from the safe original
     return {"message": "Tasks reset successfully"}
 
 # Stage 3: Create a new task
@@ -97,6 +98,8 @@ async def create_task(task: TaskCreate):
 
 @app.put("/tasks/{task_id}", summary="Update an existing task")
 async def update_task(task_id: int, task: TaskUpdate):
+    if task.title is not None and not task.title.strip():
+        raise HTTPException(status_code=400, detail="Title cannot be empty")
     for i, t in enumerate(tasks):
         if t["id"] == task_id:
             if task.title is not None:

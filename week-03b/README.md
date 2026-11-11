@@ -19,7 +19,7 @@ That's it. One command starts everything.
 
 ## Service and routes unchanged
 
-The API endpoints (`main.py`) did not change at all.
+The API behavior (URLs and answers) did not change. `main.py` now calls `repository.py` instead of running SQL.
 Only `repository.py` changed — proving the architecture works.
 
 ## Persistence proof

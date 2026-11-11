@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from enum import Enum
 
 class CanonicalTitle(str, Enum):
@@ -16,5 +16,5 @@ class CanonicalTitle(str, Enum):
 
 class NormalizeOutput(BaseModel):
     canonical_title: CanonicalTitle
-    confidence: float
+    confidence: float = Field(ge=0, le=1)
     reason: str

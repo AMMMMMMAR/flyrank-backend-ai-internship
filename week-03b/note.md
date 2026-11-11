@@ -259,7 +259,8 @@ services:
     env_file:
       - .env
     depends_on:
-      - db  # app starts only after database is ready
+      db:
+        condition: service_healthy  # app waits until the db healthcheck passes
 
 volumes:
   postgres_data:  # named volume — survives container deletion

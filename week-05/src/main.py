@@ -125,6 +125,7 @@ if __name__ == "__main__":
     fetches = 0
     failed_pages = []
 
+    catalogue_failures = 0
     while current_url and page_num <= 3:
         cache_path = f"cache/catalogue-page-{page_num}.html"
         html = fetch_page(current_url, cache_path)
@@ -135,6 +136,12 @@ if __name__ == "__main__":
             all_book_links.extend(links)
             current_url = get_next_page(html, current_url)
             page_num += 1
+        else:
+            catalogue_failures += 1
+            failed_pages.append(current_url)
+            if catalogue_failures >= 3:
+                break
+            time.sleep(2)
 
     seen = set()
     unique_urls = []

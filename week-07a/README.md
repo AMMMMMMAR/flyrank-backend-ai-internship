@@ -63,3 +63,7 @@ until it reaches a leaf node with no outgoing edges.
 ├── YES → "Route to Support Team"
 └── NO  → "Route to Sales Team"
 ```
+
+## Known limitations
+
+- The API key is used in the browser. Variables that start with VITE_ are bundled into the page, and the OpenAI client runs with `dangerouslyAllowBrowser`. This is fine for a local practice tool, never for a real app. A real version calls the model from a backend endpoint, like week-06.

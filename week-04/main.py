@@ -52,7 +52,7 @@ async def signup(auth_request: AuthRequest):
         response = supabase.auth.sign_up({"email": email, "password": password})
         return {"user": response.user}
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/auth/login")
 async def login(auth_request: AuthRequest):

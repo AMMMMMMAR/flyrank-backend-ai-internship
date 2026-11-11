@@ -99,6 +99,8 @@ async def create_task(task: TaskCreate):
 
 @app.put("/tasks/{task_id}", summary="Update a task by ID")
 async def update_task(task_id: int, task: TaskUpdate):
+    if task.title is not None and not task.title.strip():
+        raise HTTPException(status_code=400, detail="Title cannot be empty")
     conn = sqlite3.connect("tasks.db")
     cursor = conn.cursor()
     

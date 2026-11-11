@@ -74,3 +74,10 @@ job when reports get larger or when many users request them simultaneously.
 ## PDF Screenshot
 
 ![PDF Report](screenshot.png)
+
+## Known limitations
+
+- The whole report is built inside the request, so the caller waits. week-07c shows the background-job version.
+- The one-report-per-day check is check-then-insert. Two requests at the very same moment could create two reports. A UNIQUE constraint on the report date would fix it.
+- Prices are stored as REAL. For money, whole numbers are safer.
+- Book titles go into the HTML without escaping.
